@@ -106,10 +106,15 @@ sbatch jobs/prepare_data.sh
 # 3. FRICTION GATE — prove AutoModelForTokenClassification builds + offsets are correct
 sbatch jobs/gate_check.sh        # must pass before training
 
-# 4. fine-tune (checkpoints to /scratch, resumable)
+# 4. SMOKE — train 1 epoch on 64 sentences, then reload the checkpoint OFFLINE
+#    via the gate. Proves the full train loop + that the saved checkpoint is
+#    self-contained (the OUTPUT CONTRACT), cheaply, before the real finetune.
+sbatch jobs/smoke.sh
+
+# 5. fine-tune (checkpoints to /scratch, resumable)
 sbatch jobs/finetune.sh          # add RESUME=1 to continue from last checkpoint
 
-# 5. evaluate → eval/latin_ner_eval.json + eval/latin_ner_eval.md
+# 6. evaluate → eval/latin_ner_eval.json + eval/latin_ner_eval.md
 sbatch jobs/evaluate.sh
 ```
 
@@ -131,7 +136,7 @@ src/latin_ner/
   train.py      # HF Trainer fine-tune (--resume, scratch checkpoints)
   evaluate.py   # seqeval strict + relaxed, per-class; emits eval/*
 containers/finetune.def
-jobs/           # Slurm: build_container, prepare_data, gate_check, finetune, evaluate
+jobs/           # Slurm: build_container, prepare_data, gate_check, smoke, finetune, evaluate
 tests/          # pytest (TDD, 80%+ coverage on pure helpers)
 eval/           # latin_ner_eval.json + .md  (tracked)
 data/           # gitignored; Herodotos clone lives on /scratch
