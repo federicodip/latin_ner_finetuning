@@ -35,6 +35,12 @@ if [ ! -d "$RANLP" ]; then
   git clone --depth 1 https://github.com/NER-AncientLanguages/Ner-Latin-RANLP.git "$RANLP"
 fi
 
+if [ ! -f "$SIF" ]; then
+  echo "ERROR: container not found: $SIF" >&2
+  echo "Build it first:  sbatch jobs/build_container.sh  (or chain with --dependency=afterok)" >&2
+  exit 1
+fi
+
 module load apptainer
 
 # No GPU needed (--nv omitted). PYTHONPATH points at the src-layout package.

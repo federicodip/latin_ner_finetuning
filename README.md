@@ -93,30 +93,27 @@ needs. (Rejected `pnadel/LatinBERT`: it is a 6-layer RoBERTa trained from scratc
 
 ## Cluster workflow (UZH ScienceCluster, user `fdipas`)
 
+These jobs DEPEND on each other (data needs the container; gate/smoke/finetune
+need the container + data). **Submit them chained** with `--dependency=afterok`
+so each starts only if the previous one *succeeds* — submitting them all at once
+makes them race and fail on missing inputs.
+
 ```bash
-# 0. local: push; cluster: pull + fix Windows line endings
-git pull && sed -i 's/\r$//' jobs/*.sh
+git pull   # .gitattributes enforces LF, so no sed fixup is needed
 
-# 1. build the Apptainer container (one-off)
-sbatch jobs/build_container.sh
-
-# 2. download + parse + split the Herodotos data onto /scratch
-sbatch jobs/prepare_data.sh
-
-# 3. FRICTION GATE — prove AutoModelForTokenClassification builds + offsets are correct
-sbatch jobs/gate_check.sh        # must pass before training
-
-# 4. SMOKE — train 1 epoch on 64 sentences, then reload the checkpoint OFFLINE
-#    via the gate. Proves the full train loop + that the saved checkpoint is
-#    self-contained (the OUTPUT CONTRACT), cheaply, before the real finetune.
-sbatch jobs/smoke.sh
-
-# 5. fine-tune (checkpoints to /scratch, resumable)
-sbatch jobs/finetune.sh          # add RESUME=1 to continue from last checkpoint
-
-# 6. evaluate → eval/latin_ner_eval.json + eval/latin_ner_eval.md
-sbatch jobs/evaluate.sh
+cd ~/classical-latin-ner
+B=$(sbatch --parsable jobs/build_container.sh)                 # 1. container (one-off)
+P=$(sbatch --parsable --dependency=afterok:$B jobs/prepare_data.sh)  # 2. data -> /scratch
+G=$(sbatch --parsable --dependency=afterok:$P jobs/gate_check.sh)    # 3. friction gate
+S=$(sbatch --parsable --dependency=afterok:$G jobs/smoke.sh)         # 4. train+reload smoke
+F=$(sbatch --parsable --dependency=afterok:$S jobs/finetune.sh)      # 5. fine-tune (RESUME=1 to continue)
+sbatch          --dependency=afterok:$F jobs/evaluate.sh             # 6. eval -> eval/*.json+md
+squeue -u fdipas
 ```
+
+Already built the container once? Skip step 1 and chain from `prepare_data` (it
+skips re-cloning if the data is already on `/scratch`). Each job also guards on
+the container existing and exits with a clear message if it's missing.
 
 **Acceptance gate:** in-domain entity-level **macro-F1 ≈ 0.88–0.90** (matches Beersmans 2023);
 poetry split expected to drop to **≈ 0.50** (reported honestly, not gated on).

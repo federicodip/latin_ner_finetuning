@@ -29,6 +29,12 @@ GIT_SHA=$(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo unknown)
 RESUME_FLAG=""
 if [ "${RESUME:-0}" = "1" ]; then RESUME_FLAG="--resume"; fi
 
+if [ ! -f "$SIF" ]; then
+  echo "ERROR: container not found: $SIF" >&2
+  echo "Build it first:  sbatch jobs/build_container.sh" >&2
+  exit 1
+fi
+
 module load apptainer
 
 # ---- 1. fine-tune (GPU) -------------------------------------------------- #

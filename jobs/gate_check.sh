@@ -18,6 +18,12 @@ mkdir -p "$REPO/logs" /scratch/fdipas/cache/huggingface
 
 export HTTPS_PROXY=http://10.129.62.115:3128
 
+if [ ! -f "$SIF" ]; then
+  echo "ERROR: container not found: $SIF" >&2
+  echo "Build it first:  sbatch jobs/build_container.sh  (or chain with --dependency=afterok)" >&2
+  exit 1
+fi
+
 module load apptainer
 
 # Non-zero exit (gate failure) propagates through set -e and fails the job.

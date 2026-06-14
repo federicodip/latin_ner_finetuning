@@ -19,6 +19,13 @@ CKPT=${CKPT:?set CKPT=/scratch/fdipas/classical-latin-ner/models/latin-bert-ner-
 mkdir -p "$REPO/eval" "$REPO/logs"
 
 GIT_SHA=$(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo unknown)
+
+if [ ! -f "$SIF" ]; then
+  echo "ERROR: container not found: $SIF" >&2
+  echo "Build it first:  sbatch jobs/build_container.sh" >&2
+  exit 1
+fi
+
 module load apptainer
 
 apptainer exec \

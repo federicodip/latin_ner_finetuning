@@ -8,8 +8,12 @@ From: pytorch/pytorch:2.8.0-cuda12.6-cudnn9-runtime
   requirements.txt /opt/project/requirements.txt
 
 %post
-  export DEBIAN_FRONTEND=noninteractive
-  apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+  # No apt step: this build runs without fakeroot (cluster has no subuid map),
+  # so apt can't drop privileges and would error harmlessly. We don't need any
+  # system package — git clones happen on the host, and all deps are pure-Python
+  # wheels. If a future dep needs a compiler, add build-essential via a
+  # fakeroot-enabled build instead.
+  export PYTHONUNBUFFERED=1
   pip install --no-cache-dir -r /opt/project/requirements.txt
 
 %environment

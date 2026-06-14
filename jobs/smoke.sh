@@ -22,6 +22,13 @@ SMOKE_OUT=$SCRATCH/models/_smoke
 rm -rf "$SMOKE_OUT"; mkdir -p "$SMOKE_OUT" "$REPO/logs" /scratch/fdipas/cache/huggingface
 
 export HTTPS_PROXY=http://10.129.62.115:3128
+
+if [ ! -f "$SIF" ]; then
+  echo "ERROR: container not found: $SIF" >&2
+  echo "Build it first:  sbatch jobs/build_container.sh" >&2
+  exit 1
+fi
+
 module load apptainer
 
 # ---- 1. tiny training run (downloads backbone on first use) -------------- #
