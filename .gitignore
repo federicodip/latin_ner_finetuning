@@ -16,8 +16,9 @@ beersmans2023.txt
 *.safetensors
 *.pt
 
-# HF model cache (local smoke-testing only)
+# HF model cache + scratch (local smoke-testing only)
 .hfcache/
+.smoke/
 
 # --- Python ---
 __pycache__/
