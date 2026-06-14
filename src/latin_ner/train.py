@@ -38,6 +38,7 @@ class TrainConfig:
     seed: int = 13
     label_all_subwords: bool = False
     resume: bool = False
+    max_train_samples: int | None = None  # None = full corpus; int = fast smoke subset
 
 
 # --------------------------------------------------------------------------- #
@@ -138,7 +139,15 @@ def train(config: TrainConfig) -> str:  # pragma: no cover
 
     auto_tok: Any = AutoTokenizer
     auto_model: Any = AutoModelForTokenClassification
-    tokenizer = auto_tok.from_pretrained(config.backbone, trust_remote_code=True, use_fast=True)
+    # Fast tokenizer: needed for word_ids() during label alignment, but its custom
+    # Python pre-tokenizer can't be serialized, so it must NOT be handed to the Trainer.
+    fast_tokenizer = auto_tok.from_pretrained(
+        config.backbone, trust_remote_code=True, use_fast=True
+    )
+    # Slow tokenizer: serializable -> safe for the Trainer to save at every checkpoint.
+    slow_tokenizer = auto_tok.from_pretrained(
+        config.backbone, trust_remote_code=True, use_fast=False
+    )
     model = auto_model.from_pretrained(
         config.backbone,
         num_labels=NUM_LABELS,
@@ -152,10 +161,14 @@ def train(config: TrainConfig) -> str:  # pragma: no cover
         "validation": f"{config.data_dir}/dev.jsonl",
     }
     ds = load_dataset("json", data_files=data_files)
+    if config.max_train_samples is not None:
+        n = config.max_train_samples
+        ds["train"] = ds["train"].select(range(min(n, len(ds["train"]))))
+        ds["validation"] = ds["validation"].select(range(min(n, len(ds["validation"]))))
     ds = ds.map(
         lambda b: tokenize_and_align(
             b,
-            tokenizer,
+            fast_tokenizer,
             label_all_subwords=config.label_all_subwords,
             max_length=config.max_length,
         ),
@@ -182,21 +195,57 @@ def train(config: TrainConfig) -> str:  # pragma: no cover
         report_to="none",
     )
 
+    # The Trainer saves processing_class at every checkpoint. We give it the
+    # SLOW tokenizer (serializable); the fast tokenizer's custom Python
+    # pre-tokenizer can't serialize ("Custom PreTokenizer cannot be
+    # serialized"). After training we overwrite the saved tokenizer with the
+    # full original source set so the checkpoint rebuilds the FAST tokenizer.
     trainer = Trainer(
         model=model,
         args=args,
         train_dataset=ds["train"],
         eval_dataset=ds["validation"],
-        processing_class=tokenizer,  # transformers v5 name (was tokenizer=)
-        data_collator=DataCollatorForTokenClassification(tokenizer),
+        processing_class=slow_tokenizer,
+        data_collator=DataCollatorForTokenClassification(slow_tokenizer),
         compute_metrics=build_compute_metrics(),
         preprocess_logits_for_metrics=preprocess_logits_for_metrics,
     )
 
     trainer.train(resume_from_checkpoint=config.resume or None)
     trainer.save_model(config.output_dir)
-    tokenizer.save_pretrained(config.output_dir)  # copies custom tokenizer code -> self-contained
+    _save_tokenizer_sources(config.backbone, config.output_dir)
     return config.output_dir
+
+
+# Tokenizer files the Hub backbone ships; copied verbatim so the checkpoint can
+# rebuild the fast tokenizer (use_fast=True) offline. tokenizer.json is absent
+# by design (the custom pre-tokenizer is rebuilt from latin.subword.encoder).
+_TOKENIZER_FILES = (
+    "latin.subword.encoder",
+    "tokenization_latin_bert.py",
+    "tokenization_latin_bert_fast.py",
+    "tokenizer_config.json",
+    "special_tokens_map.json",
+)
+
+
+def _save_tokenizer_sources(backbone: str, out_dir: str) -> None:  # pragma: no cover
+    """Copy the backbone's tokenizer source files into the checkpoint so it is
+    self-contained for `AutoTokenizer.from_pretrained(dir, use_fast=True,
+    trust_remote_code=True)`. Skips files that don't exist / can't resolve."""
+    import shutil
+    from pathlib import Path
+
+    from huggingface_hub import hf_hub_download
+
+    out = Path(out_dir)
+    for fname in _TOKENIZER_FILES:
+        try:
+            src = hf_hub_download(backbone, fname)
+        except Exception:
+            # optional file (e.g. special_tokens_map) or a local-path backbone
+            continue
+        shutil.copy(src, out / fname)
 
 
 def main(argv: Sequence[str] | None = None) -> None:  # pragma: no cover
@@ -211,6 +260,9 @@ def main(argv: Sequence[str] | None = None) -> None:  # pragma: no cover
     parser.add_argument("--max-length", type=int, default=256)
     parser.add_argument("--seed", type=int, default=13)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument(
+        "--max-train-samples", type=int, default=None, help="subset train+val for a fast smoke run"
+    )
     args = parser.parse_args(argv)
 
     config = TrainConfig(
@@ -224,6 +276,7 @@ def main(argv: Sequence[str] | None = None) -> None:  # pragma: no cover
         max_length=args.max_length,
         seed=args.seed,
         resume=args.resume,
+        max_train_samples=args.max_train_samples,
     )
     out = train(config)
     print(f"saved checkpoint -> {out}")

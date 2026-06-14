@@ -26,6 +26,11 @@ class TestTrainConfig:
     def test_label_all_subwords_off_by_default(self) -> None:
         assert TrainConfig().label_all_subwords is False
 
+    def test_max_train_samples_unset_by_default(self) -> None:
+        # None = full corpus; an int subsets train+val for a fast smoke run.
+        assert TrainConfig().max_train_samples is None
+        assert TrainConfig(max_train_samples=64).max_train_samples == 64
+
 
 class TestDecodeEval:
     def test_drops_ignore_index_positions(self) -> None:
