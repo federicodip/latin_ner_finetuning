@@ -1,0 +1,9 @@
+# Container runtime deps (web-verified mid-2026).
+# torch is intentionally ABSENT: it ships with the pytorch/pytorch CUDA base
+# image (containers/finetune.def). Installing it here would pull a CPU wheel
+# over the GPU build. See pyproject.toml for the rationale + cross-checks.
+transformers==5.8.1
+datasets>=3.0,<6
+seqeval==1.2.2
+accelerate>=1.0
+numpy<3

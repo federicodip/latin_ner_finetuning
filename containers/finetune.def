@@ -1,0 +1,21 @@
+Bootstrap: docker
+# GPU torch baked in (web-verified tag, Docker Hub, mid-2026). CUDA 12.6 covers
+# L4 (sm_89) / A100 (sm_80) / H100·H200 (sm_90). torch is NOT reinstalled from
+# requirements.txt so this CUDA build is preserved. Ships Python 3.11.
+From: pytorch/pytorch:2.8.0-cuda12.6-cudnn9-runtime
+
+%files
+  requirements.txt /opt/project/requirements.txt
+
+%post
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+  pip install --no-cache-dir -r /opt/project/requirements.txt
+
+%environment
+  export LC_ALL=C.UTF-8
+  export LANG=C.UTF-8
+  export PYTHONUNBUFFERED=1
+
+%runscript
+  exec python "$@"

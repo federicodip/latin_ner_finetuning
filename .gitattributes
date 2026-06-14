@@ -1,0 +1,5 @@
+# Force LF on shell scripts and container defs so Slurm/Apptainer never choke
+# on Windows CRLF after a checkout on the cluster.
+*.sh   text eol=lf
+*.def  text eol=lf
+*.py   text eol=lf

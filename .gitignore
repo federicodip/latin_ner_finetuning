@@ -1,0 +1,51 @@
+# --- Data & models: AGPL/large artifacts live on /scratch, NEVER in git ---
+data/
+models/
+*.crf
+*.tok
+*.conll
+*.tsv
+
+# Downloaded source paper (ACL copyright) — kept locally, not redistributed
+beersmans2023.pdf
+beersmans2023.txt
+
+# Containers / weights
+*.sif
+*.bin
+*.safetensors
+*.pt
+
+# HF model cache (local smoke-testing only)
+.hfcache/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# --- Tooling caches ---
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# --- Editors / OS ---
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# --- Cluster ---
+logs/
+*.out
+*.err
+
+# NOTE: eval/*.json and eval/*.md ARE tracked (small result artifacts, no AGPL data).
