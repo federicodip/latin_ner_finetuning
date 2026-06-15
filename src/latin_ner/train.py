@@ -125,11 +125,11 @@ def preprocess_logits_for_metrics(logits: Any, labels: Any) -> Any:  # pragma: n
 
 def train(config: TrainConfig) -> str:  # pragma: no cover
     """Fine-tune and save a checkpoint dir; returns the output path."""
+    import torch
     from datasets import load_dataset
     from transformers import (
         AutoModelForTokenClassification,
         AutoTokenizer,
-        DataCollatorForTokenClassification,
         Trainer,
         TrainingArguments,
         set_seed,
@@ -139,15 +139,12 @@ def train(config: TrainConfig) -> str:  # pragma: no cover
 
     auto_tok: Any = AutoTokenizer
     auto_model: Any = AutoModelForTokenClassification
-    # Fast tokenizer: needed for word_ids() during label alignment, but its custom
-    # Python pre-tokenizer can't be serialized, so it must NOT be handed to the Trainer.
-    fast_tokenizer = auto_tok.from_pretrained(
-        config.backbone, trust_remote_code=True, use_fast=True
-    )
-    # Slow tokenizer: serializable -> safe for the Trainer to save at every checkpoint.
-    slow_tokenizer = auto_tok.from_pretrained(
-        config.backbone, trust_remote_code=True, use_fast=False
-    )
+    # Fast tokenizer: needed for word_ids() during label alignment. Its custom
+    # Python pre-tokenizer can't be serialized to tokenizer.json, and on
+    # transformers v5 use_fast=False does NOT give a serializable slow tokenizer
+    # either -> we must never hand a tokenizer to the Trainer to save (see the
+    # collator + processing_class note below).
+    tokenizer = auto_tok.from_pretrained(config.backbone, trust_remote_code=True, use_fast=True)
     model = auto_model.from_pretrained(
         config.backbone,
         num_labels=NUM_LABELS,
@@ -168,7 +165,7 @@ def train(config: TrainConfig) -> str:  # pragma: no cover
     ds = ds.map(
         lambda b: tokenize_and_align(
             b,
-            fast_tokenizer,
+            tokenizer,
             label_all_subwords=config.label_all_subwords,
             max_length=config.max_length,
         ),
@@ -195,18 +192,35 @@ def train(config: TrainConfig) -> str:  # pragma: no cover
         report_to="none",
     )
 
-    # The Trainer saves processing_class at every checkpoint. We give it the
-    # SLOW tokenizer (serializable); the fast tokenizer's custom Python
-    # pre-tokenizer can't serialize ("Custom PreTokenizer cannot be
-    # serialized"). After training we overwrite the saved tokenizer with the
-    # full original source set so the checkpoint rebuilds the FAST tokenizer.
+    # CRITICAL: never hand the Trainer a tokenizer. The Trainer saves its
+    # processing_class at EVERY checkpoint, and any LatinBERT tokenizer object
+    # (fast, or v5 "slow" which is fast-backed) raises "Custom PreTokenizer
+    # cannot be serialized". So we use a plain-function collator (no .tokenizer
+    # attribute for the Trainer to adopt) and omit processing_class -> the
+    # Trainer never calls save_pretrained. We copy the tokenizer source files
+    # into the checkpoint ourselves via _save_tokenizer_sources.
+    pad_id = tokenizer.pad_token_id
+
+    def collate(features: list[dict[str, Any]]) -> dict[str, Any]:
+        width = max(len(f["input_ids"]) for f in features)
+        input_ids, attention, labels = [], [], []
+        for f in features:
+            gap = width - len(f["input_ids"])
+            input_ids.append(f["input_ids"] + [pad_id] * gap)
+            attention.append(f["attention_mask"] + [0] * gap)
+            labels.append(f["labels"] + [-100] * gap)
+        return {
+            "input_ids": torch.tensor(input_ids, dtype=torch.long),
+            "attention_mask": torch.tensor(attention, dtype=torch.long),
+            "labels": torch.tensor(labels, dtype=torch.long),
+        }
+
     trainer = Trainer(
         model=model,
         args=args,
         train_dataset=ds["train"],
         eval_dataset=ds["validation"],
-        processing_class=slow_tokenizer,
-        data_collator=DataCollatorForTokenClassification(slow_tokenizer),
+        data_collator=collate,
         compute_metrics=build_compute_metrics(),
         preprocess_logits_for_metrics=preprocess_logits_for_metrics,
     )
