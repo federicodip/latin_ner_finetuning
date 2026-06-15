@@ -34,7 +34,10 @@ class TrainConfig:
     per_device_train_batch_size: int = 16
     per_device_eval_batch_size: int = 32
     warmup_ratio: float = 0.1
-    max_length: int = 256
+    # 512 (BERT-base max), not 256: LatinBERT's subword tokenizer is aggressive
+    # (e.g. "Gallia" -> 5 subwords), so long prose sentences exceed 256 subwords
+    # and truncating them drops tail entities, hurting recall.
+    max_length: int = 512
     seed: int = 13
     label_all_subwords: bool = False
     resume: bool = False
@@ -285,7 +288,7 @@ def main(argv: Sequence[str] | None = None) -> None:  # pragma: no cover
     parser.add_argument("--weight-decay", type=float, default=0.10)
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--train-batch-size", type=int, default=16)
-    parser.add_argument("--max-length", type=int, default=256)
+    parser.add_argument("--max-length", type=int, default=512)
     parser.add_argument("--seed", type=int, default=13)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument(
