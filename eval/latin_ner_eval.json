@@ -1,0 +1,210 @@
+{
+  "repro": {
+    "backbone": "/scratch/fdipas/classical-latin-ner/models/latin-bert-ner-2026-06-15",
+    "checkpoint": "/scratch/fdipas/classical-latin-ner/models/latin-bert-ner-2026-06-15",
+    "transformers_version": "5.8.1",
+    "git_sha": "7466907372d2e8cb9d6597b3e5216365841e5e72",
+    "data_git_sha": "229547aa0f64e6c13fdf6fe49f99383c0a243ea4",
+    "num_labels": 7
+  },
+  "acceptance": {
+    "metric": "in_domain_test strict macro-F1 (floor; paper target 0.88-0.90)",
+    "threshold": 0.83,
+    "in_domain_macro_f1": 0.8373168814118319,
+    "passes": true
+  },
+  "splits": {
+    "in_domain_test": {
+      "name": "in_domain_test",
+      "n_sentences": 970,
+      "n_gold_entities": 838,
+      "n_pred_entities": 865,
+      "strict": {
+        "macro_f1": 0.8373168814118319,
+        "micro": {
+          "precision": 0.8393063583815029,
+          "recall": 0.8663484486873508,
+          "f1": 0.8526130358191427,
+          "support": 838
+        },
+        "per_type": {
+          "PRS": {
+            "precision": 0.8438735177865613,
+            "recall": 0.9143468950749465,
+            "f1": 0.8776978417266188,
+            "support": 467
+          },
+          "GEO": {
+            "precision": 0.8023952095808383,
+            "recall": 0.7701149425287356,
+            "f1": 0.7859237536656891,
+            "support": 174
+          },
+          "GRP": {
+            "precision": 0.859375,
+            "recall": 0.8375634517766497,
+            "f1": 0.8483290488431876,
+            "support": 197
+          }
+        }
+      },
+      "relaxed": {
+        "macro_f1": 0.8690594403835239,
+        "micro": {
+          "precision": 0.8739884393063584,
+          "recall": 0.9021479713603818,
+          "f1": 0.8878449794480328,
+          "support": 838
+        },
+        "per_type": {
+          "PRS": {
+            "precision": 0.8853754940711462,
+            "recall": 0.9593147751605996,
+            "f1": 0.920863309352518,
+            "support": 467
+          },
+          "GEO": {
+            "precision": 0.8502994011976048,
+            "recall": 0.8160919540229885,
+            "f1": 0.8328445747800587,
+            "support": 174
+          },
+          "GRP": {
+            "precision": 0.8645833333333334,
+            "recall": 0.8426395939086294,
+            "f1": 0.853470437017995,
+            "support": 197
+          }
+        }
+      }
+    },
+    "poetry": {
+      "name": "poetry",
+      "n_sentences": 2435,
+      "n_gold_entities": 571,
+      "n_pred_entities": 537,
+      "strict": {
+        "macro_f1": 0.4944381000719029,
+        "micro": {
+          "precision": 0.6033519553072626,
+          "recall": 0.5674255691768827,
+          "f1": 0.5848375451263539,
+          "support": 571
+        },
+        "per_type": {
+          "PRS": {
+            "precision": 0.6757493188010899,
+            "recall": 0.6578249336870027,
+            "f1": 0.6666666666666666,
+            "support": 377
+          },
+          "GEO": {
+            "precision": 0.4727272727272727,
+            "recall": 0.2988505747126437,
+            "f1": 0.36619718309859156,
+            "support": 87
+          },
+          "GRP": {
+            "precision": 0.43478260869565216,
+            "recall": 0.4672897196261682,
+            "f1": 0.45045045045045046,
+            "support": 107
+          }
+        }
+      },
+      "relaxed": {
+        "macro_f1": 0.5096710749822971,
+        "micro": {
+          "precision": 0.6350093109869647,
+          "recall": 0.5971978984238179,
+          "f1": 0.6155234657039711,
+          "support": 571
+        },
+        "per_type": {
+          "PRS": {
+            "precision": 0.7220708446866485,
+            "recall": 0.7029177718832891,
+            "f1": 0.7123655913978494,
+            "support": 377
+          },
+          "GEO": {
+            "precision": 0.4727272727272727,
+            "recall": 0.2988505747126437,
+            "f1": 0.36619718309859156,
+            "support": 87
+          },
+          "GRP": {
+            "precision": 0.43478260869565216,
+            "recall": 0.4672897196261682,
+            "f1": 0.45045045045045046,
+            "support": 107
+          }
+        }
+      }
+    },
+    "lasla_cross_genre": {
+      "name": "lasla_cross_genre",
+      "n_sentences": 505,
+      "n_gold_entities": 1365,
+      "n_pred_entities": 903,
+      "strict": {
+        "macro_f1": 0.6153955657795963,
+        "micro": {
+          "precision": 0.8151447661469933,
+          "recall": 0.5362637362637362,
+          "f1": 0.6469288555015466,
+          "support": 1365
+        },
+        "per_type": {
+          "PRS": {
+            "precision": 0.8879003558718861,
+            "recall": 0.580908032596042,
+            "f1": 0.7023223082336382,
+            "support": 859
+          },
+          "GEO": {
+            "precision": 0.628140703517588,
+            "recall": 0.3980891719745223,
+            "f1": 0.4873294346978559,
+            "support": 314
+          },
+          "GRP": {
+            "precision": 0.7883211678832117,
+            "recall": 0.5625,
+            "f1": 0.6565349544072949,
+            "support": 192
+          }
+        }
+      },
+      "relaxed": {
+        "macro_f1": 0.6688302669522767,
+        "micro": {
+          "precision": 0.8859357696566998,
+          "recall": 0.5860805860805861,
+          "f1": 0.7054673721340389,
+          "support": 1365
+        },
+        "per_type": {
+          "PRS": {
+            "precision": 0.9523809523809523,
+            "recall": 0.6286379511059371,
+            "f1": 0.7573632538569425,
+            "support": 859
+          },
+          "GEO": {
+            "precision": 0.7638190954773869,
+            "recall": 0.4840764331210191,
+            "f1": 0.5925925925925924,
+            "support": 314
+          },
+          "GRP": {
+            "precision": 0.7883211678832117,
+            "recall": 0.5625,
+            "f1": 0.6565349544072949,
+            "support": 192
+          }
+        }
+      }
+    }
+  }
+}
