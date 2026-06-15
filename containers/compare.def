@@ -15,9 +15,11 @@ From: condaforge/miniforge3:latest
   # METADATA; the "3.9.3" is the MODEL version, not a spaCy requirement) +
   # latincy-preprocess (built from sdist here) + la-latincy-lookups. seqeval is
   # for our scorer (reused via latin_ner.evaluate).
+  # `click` is explicit: spacy 3.8.14 imports it directly (spacy/cli/_util.py)
+  # but typer>=0.26 stopped pulling click as a dependency, so it would be missing.
   conda run -n latincy pip install --no-cache-dir \
     "https://huggingface.co/latincy/la_core_web_lg/resolve/main/la_core_web_lg-3.9.3-py3-none-any.whl" \
-    seqeval
+    seqeval "click>=8.1"
   # Build-time smoke: load the model + confirm the NER labels are PERSON/LOC/NORP.
   conda run -n latincy python -c "import spacy, la_core_web_lg; nlp=la_core_web_lg.load(); print('OK spacy', spacy.__version__, '| ner labels', sorted(nlp.get_pipe('ner').labels))"
 
