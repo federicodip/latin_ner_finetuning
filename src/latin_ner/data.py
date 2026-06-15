@@ -208,8 +208,14 @@ def run(
     out_dir: Path | str,
     lasla_dir: Path | str | None = None,
     seed: int = 13,
+    data_git_sha: str | None = None,
 ) -> dict[str, object]:
-    """Parse, split, and write JSONL splits; return a manifest dict."""
+    """Parse, split, and write JSONL splits; return a manifest dict.
+
+    ``data_git_sha`` is the corpus commit for the reproducibility stamp. Pass it
+    explicitly (captured on the host, where git exists) — the Apptainer container
+    has no git binary, so the in-container fallback returns "unknown".
+    """
     herodotos_dir = Path(herodotos_dir)
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -235,7 +241,7 @@ def run(
         "dev": len(splits["dev"]),
         "test": len(splits["test"]),
         "poetry": len(poetry),
-        "data_git_sha": _git_sha(herodotos_dir),
+        "data_git_sha": data_git_sha or _git_sha(herodotos_dir),
         "entity_counts": _entity_counts(prose),
     }
 
@@ -260,12 +266,18 @@ def main(argv: Sequence[str] | None = None) -> None:  # pragma: no cover
         "--lasla-dir", default=None, help="Optional Latin_Gold_Data/ for LASLA eval"
     )
     parser.add_argument("--seed", type=int, default=13)
+    parser.add_argument(
+        "--data-git-sha",
+        default=None,
+        help="corpus commit sha (host-captured; no git in container)",
+    )
     args = parser.parse_args(argv)
     manifest = run(
         herodotos_dir=args.herodotos_dir,
         out_dir=args.out_dir,
         lasla_dir=args.lasla_dir,
         seed=args.seed,
+        data_git_sha=args.data_git_sha,
     )
     print(json.dumps(manifest, indent=2, ensure_ascii=False))
 

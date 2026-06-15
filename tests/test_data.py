@@ -189,6 +189,14 @@ class TestRunIntegration:
         assert (out / "lasla.jsonl").exists()
         assert manifest["lasla"] == 1
 
+    def test_run_uses_explicit_data_git_sha(self, tmp_path: Path) -> None:
+        # The container has no git, so the sha is captured on the host and passed
+        # in; it must land verbatim in the manifest (reproducibility stamp).
+        herod = tmp_path / "Annotation_1-1-19"
+        self._write_corpus(herod)
+        manifest = run(herodotos_dir=herod, out_dir=tmp_path / "o", data_git_sha="deadbeef")
+        assert manifest["data_git_sha"] == "deadbeef"
+
     def test_run_is_deterministic(self, tmp_path: Path) -> None:
         herod = tmp_path / "Annotation_1-1-19"
         self._write_corpus(herod)

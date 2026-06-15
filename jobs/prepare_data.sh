@@ -43,6 +43,10 @@ fi
 
 module load apptainer
 
+# Capture the corpus commit on the HOST — the container has no git binary, so
+# computing it inside would yield "unknown" (breaks the reproducibility stamp).
+DATA_SHA=$(git -C "$HERODOTOS" rev-parse HEAD 2>/dev/null || echo unknown)
+
 # No GPU needed (--nv omitted). PYTHONPATH points at the src-layout package.
 apptainer exec \
   --env PYTHONPATH="$REPO/src" \
@@ -51,7 +55,8 @@ apptainer exec \
     --herodotos-dir "$HERODOTOS/Annotation_1-1-19" \
     --lasla-dir "$RANLP/Latin_Gold_Data" \
     --out-dir "$SPLITS" \
-    --seed 13
+    --seed 13 \
+    --data-git-sha "$DATA_SHA"
 
 echo "==== manifest ===="
 cat "$SPLITS/manifest.json"

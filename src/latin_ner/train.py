@@ -220,31 +220,45 @@ def train(config: TrainConfig) -> str:  # pragma: no cover
 # Tokenizer files the Hub backbone ships; copied verbatim so the checkpoint can
 # rebuild the fast tokenizer (use_fast=True) offline. tokenizer.json is absent
 # by design (the custom pre-tokenizer is rebuilt from latin.subword.encoder).
-_TOKENIZER_FILES = (
+# REQUIRED files MUST be present or the checkpoint can't load use_fast offline;
+# the rest are best-effort.
+_TOKENIZER_FILES_REQUIRED = (
     "latin.subword.encoder",
     "tokenization_latin_bert.py",
     "tokenization_latin_bert_fast.py",
     "tokenizer_config.json",
-    "special_tokens_map.json",
 )
+_TOKENIZER_FILES_OPTIONAL = ("special_tokens_map.json",)
 
 
 def _save_tokenizer_sources(backbone: str, out_dir: str) -> None:  # pragma: no cover
     """Copy the backbone's tokenizer source files into the checkpoint so it is
     self-contained for `AutoTokenizer.from_pretrained(dir, use_fast=True,
-    trust_remote_code=True)`. Skips files that don't exist / can't resolve."""
+    trust_remote_code=True)`.
+
+    Raises RuntimeError if a REQUIRED file can't be fetched — failing loudly at
+    save time beats shipping a checkpoint that silently can't reload offline.
+    """
     import shutil
     from pathlib import Path
 
     from huggingface_hub import hf_hub_download
 
     out = Path(out_dir)
-    for fname in _TOKENIZER_FILES:
+    for fname in _TOKENIZER_FILES_REQUIRED:
+        try:
+            src = hf_hub_download(backbone, fname)
+        except Exception as exc:
+            raise RuntimeError(
+                f"could not fetch required tokenizer file {fname!r} from {backbone!r}; "
+                f"the checkpoint would not reload with use_fast=True offline"
+            ) from exc
+        shutil.copy(src, out / fname)
+    for fname in _TOKENIZER_FILES_OPTIONAL:
         try:
             src = hf_hub_download(backbone, fname)
         except Exception:
-            # optional file (e.g. special_tokens_map) or a local-path backbone
-            continue
+            continue  # genuinely optional (some backbones omit it)
         shutil.copy(src, out / fname)
 
 

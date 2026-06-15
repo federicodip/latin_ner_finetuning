@@ -19,6 +19,7 @@ CKPT=${CKPT:?set CKPT=/scratch/fdipas/classical-latin-ner/models/latin-bert-ner-
 mkdir -p "$REPO/eval" "$REPO/logs"
 
 GIT_SHA=$(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo unknown)
+export HTTPS_PROXY=http://10.129.62.115:3128  # harmless if unused; covers any HF hub touch
 
 if [ ! -f "$SIF" ]; then
   echo "ERROR: container not found: $SIF" >&2
@@ -30,6 +31,7 @@ module load apptainer
 
 apptainer exec \
   --env PYTHONPATH="$REPO/src" \
+  --env HTTPS_PROXY="$HTTPS_PROXY" \
   --env HF_HOME=/scratch/fdipas/cache/huggingface \
   "$SIF" python -m latin_ner.evaluate \
     --checkpoint "$CKPT" \

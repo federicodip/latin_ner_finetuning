@@ -51,6 +51,7 @@ apptainer exec --nv \
 # ---- 2. evaluate -> eval/*.json + .md (committed to the repo) ------------- #
 apptainer exec --nv \
   --env PYTHONPATH="$REPO/src" \
+  --env HTTPS_PROXY="$HTTPS_PROXY" \
   --env HF_HOME=/scratch/fdipas/cache/huggingface \
   "$SIF" python -m latin_ner.evaluate \
     --checkpoint "$OUTDIR" \

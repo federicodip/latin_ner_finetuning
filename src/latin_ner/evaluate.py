@@ -259,7 +259,10 @@ def main(argv: Sequence[str] | None = None) -> None:  # pragma: no cover
     auto_model: Any = AutoModelForTokenClassification
     auto_tok: Any = AutoTokenizer
     model = auto_model.from_pretrained(args.checkpoint, trust_remote_code=True).to(device)
-    tokenizer = auto_tok.from_pretrained(args.checkpoint, trust_remote_code=True)
+    # use_fast=True is REQUIRED: _predict_split relies on word_ids(), which only
+    # fast tokenizers expose. Being explicit also makes a missing fast-tokenizer
+    # source file fail loudly here rather than silently degrading to the slow one.
+    tokenizer = auto_tok.from_pretrained(args.checkpoint, trust_remote_code=True, use_fast=True)
 
     data_dir = Path(args.data_dir)
     manifest = {}
