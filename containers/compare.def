@@ -1,0 +1,33 @@
+Bootstrap: docker
+# Conda base so we can install a C compiler WITHOUT apt (the cluster build runs
+# without fakeroot). LatinCy's `latincy-preprocess` has compiled extensions and
+# ships no Linux wheel, so it must be built from sdist -> needs a compiler.
+From: condaforge/miniforge3:latest
+
+%post
+  set -e
+  . /opt/conda/etc/profile.d/conda.sh
+  # Python 3.11 (latincy-preprocess targets cp311) + a C compiler in a named env.
+  mamba create -y -n latincy -c conda-forge python=3.11 pip c-compiler
+  # `conda run` reliably activates the env (incl. the c-compiler's CC/CXX) in a
+  # non-interactive build — more robust than `conda activate` in %post.
+  # The model wheel (3.9.3) requires spacy<3.9.0,>=3.8.11 (verified from its
+  # METADATA; the "3.9.3" is the MODEL version, not a spaCy requirement) +
+  # latincy-preprocess (built from sdist here) + la-latincy-lookups. seqeval is
+  # for our scorer (reused via latin_ner.evaluate).
+  conda run -n latincy pip install --no-cache-dir \
+    "https://huggingface.co/latincy/la_core_web_lg/resolve/main/la_core_web_lg-3.9.3-py3-none-any.whl" \
+    seqeval
+  # Build-time smoke: load the model + confirm the NER labels are PERSON/LOC/NORP.
+  conda run -n latincy python -c "import spacy, la_core_web_lg; nlp=la_core_web_lg.load(); print('OK spacy', spacy.__version__, '| ner labels', sorted(nlp.get_pipe('ner').labels))"
+
+%environment
+  # Put the latincy env first on PATH so `apptainer exec ... python` resolves to
+  # it without relying on `conda activate` at exec time.
+  export PATH=/opt/conda/envs/latincy/bin:$PATH
+  export PYTHONUNBUFFERED=1
+  export LC_ALL=C.UTF-8
+  export LANG=C.UTF-8
+
+%runscript
+  exec python "$@"
